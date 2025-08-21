@@ -1,0 +1,863 @@
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPE Safety Detection System</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #1a8c84b3;
+            color: #111827;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .logo img {
+            height: 48px;
+            margin-right: 0.5rem;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-container {
+            position: relative;
+            background: #111827;
+            aspect-ratio: 16/9;
+        }
+
+        .video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timestamp {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-family: monospace;
+        }
+
+        .camera-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+
+        .camera-placeholder::before {
+            content: '📹';
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .controls {
+            padding: 1rem;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .button-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background: #2563eb;
+        }
+
+        .button-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .button-danger:hover {
+            background: #dc2626;
+        }
+
+        .button-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .button-secondary:hover {
+            background: #4b5563;
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+        }
+
+        .stat-content h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-content p {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .stat-success { color: #10b981; }
+        .stat-danger { color: #ef4444; }
+        .stat-primary { color: #3b82f6; }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .alert-item {
+            padding: 0.75rem;
+            border-left: 4px solid #ef4444;
+            background: #fef2f2;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-item.warning {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .alert-item h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-item p {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .empty-state::before {
+            content: '📋';
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
+        .screenshot-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .screenshot-placeholder {
+            height: 6rem;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+        }
+
+        .screenshot-info {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .screenshot-info h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .violation-type {
+            text-transform: capitalize;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-icon {
+            width: 3rem;
+            height: 3rem;
+            margin: 0 auto 1rem;
+            background: #fef2f2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" defer>
+        const { useState, useEffect, useRef } = React;
+
+        // Mock PPE Detection Hook
+        function usePPEDetection(videoRef, canvasRef, isActive) {
+            const [detectedPersons, setDetectedPersons] = useState(0);
+            const [violations, setViolations] = useState([]);
+            const [statistics, setStatistics] = useState({
+                totalDetections: 0,
+                compliantCount: 0,
+                violationCount: 0,
+                complianceRate: 100
+            });
+
+            useEffect(() => {
+                if (!isActive || !videoRef.current) return;
+
+                const interval = setInterval(() => {
+                    const personCount = Math.floor(Math.random() * 3) + 1;
+                    setDetectedPersons(personCount);
+
+                    // Simulate detection
+                    const hasViolation = Math.random() < 0.15; // 15% chance
+
+                    if (hasViolation) {
+                        const violationTypes = ['missing_helmet', 'missing_vest', 'missing_gloves'];
+                        const violation = {
+                            type: violationTypes[Math.floor(Math.random() * violationTypes.length)],
+                            person: 1,
+                            confidence: 0.85,
+                            timestamp: new Date()
+                        };
+
+                        setViolations(prev => [violation, ...prev.slice(0, 9)]);
+                        setStatistics(prev => ({
+                            totalDetections: prev.totalDetections + 1,
+                            compliantCount: prev.compliantCount,
+                            violationCount: prev.violationCount + 1,
+                            complianceRate: Math.round((prev.compliantCount / (prev.totalDetections + 1)) * 100)
+                        }));
+
+                        // Draw detection box
+                        if (canvasRef.current) {
+                            const canvas = canvasRef.current;
+                            const ctx = canvas.getContext('2d');
+                            const video = videoRef.current;
+
+                            canvas.width = video.clientWidth;
+                            canvas.height = video.clientHeight;
+
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                            // Draw bounding box
+                            const x = Math.random() * 0.6 * canvas.width;
+                            const y = Math.random() * 0.4 * canvas.height;
+                            const width = 0.2 * canvas.width;
+                            const height = 0.4 * canvas.height;
+
+                            ctx.strokeStyle = violation.type.includes('helmet') ? '#ef4444' : '#f59e0b';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x, y, width, height);
+
+                            ctx.fillStyle = violation.type.includes('helmet') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+                            ctx.fillRect(x, y, width, height);
+
+                            ctx.fillStyle = ctx.strokeStyle;
+                            ctx.font = '12px Arial';
+                            ctx.fillText(violation.type.replace(/_/g, ' '), x, y - 5);
+                        }
+                    } else {
+                        setStatistics(prev => ({
+                            totalDetections: prev.totalDetections + 1,
+                            compliantCount: prev.compliantCount + 1,
+                            violationCount: prev.violationCount,
+                            complianceRate: Math.round(((prev.compliantCount + 1) / (prev.totalDetections + 1)) * 100)
+                        }));
+
+                        // Clear canvas if no violations
+                        if (canvasRef.current) {
+                            const canvas = canvasRef.current;
+                            const ctx = canvas.getContext('2d');
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        }
+                    }
+                }, 3000);
+
+                return () => clearInterval(interval);
+            }, [isActive]);
+
+            return { detectedPersons, violations, statistics };
+        }
+
+        // Main App Component
+        function PPEDetectionApp() {
+            const [cameraActive, setCameraActive] = useState(false);
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [showAlert, setShowAlert] = useState(false);
+            const [latestViolation, setLatestViolation] = useState(null);
+            const [videoDevices, setVideoDevices] = useState([]);
+            const [selectedDeviceId, setSelectedDeviceId] = useState('');
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const streamRef = useRef(null);
+
+    const { detectedPersons, violations, statistics } = usePPEDetection(videoRef, canvasRef, cameraActive);
+
+    // State to store violation screenshots
+    const [violationScreenshots, setViolationScreenshots] = useState([]);
+
+    // Capture screenshot when a new violation is detected
+    useEffect(() => {
+        if (violations.length > 0) {
+            const latest = violations[0];
+            // Only add screenshot if not already present for this violation
+            if (!violationScreenshots.some(s => s.timestamp === latest.timestamp.toString())) {
+                if (videoRef.current && cameraActive) {
+                    const video = videoRef.current;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg');
+                    setViolationScreenshots(prev => [
+                        {
+                            image: dataUrl,
+                            type: latest.type,
+                            timestamp: latest.timestamp.toString()
+                        },
+                        ...prev.slice(0,2) // keep max 3 screenshots
+                    ]);
+                }
+            }
+        }
+    }, [violations, cameraActive]);
+
+            // Get available video devices
+            useEffect(() => {
+                async function fetchDevices() {
+                    try {
+                        const devices = await navigator.mediaDevices.enumerateDevices();
+                        const videoInputs = devices.filter(device => device.kind === 'videoinput');
+                        setVideoDevices(videoInputs);
+                        if (videoInputs.length > 0 && !selectedDeviceId) {
+                            setSelectedDeviceId(videoInputs[0].deviceId);
+                        }
+                    } catch (e) {
+                        setVideoDevices([]);
+                    }
+                }
+                fetchDevices();
+            }, []);
+
+            // Update time
+            useEffect(() => {
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // Show alert for new violations
+            useEffect(() => {
+                if (violations.length > 0 && violations[0] !== latestViolation) {
+                    setLatestViolation(violations[0]);
+                    setShowAlert(true);
+                }
+            }, [violations]);
+
+            const startCamera = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined, width: 1280, height: 720 }
+                    });
+                    videoRef.current.srcObject = stream;
+                    streamRef.current = stream;
+                    setCameraActive(true);
+                } catch (error) {
+                    alert('Camera access denied. Please allow camera permissions.');
+                }
+            };
+
+            const stopCamera = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                if (videoRef.current) {
+                    videoRef.current.srcObject = null;
+                }
+                setCameraActive(false);
+            };
+
+            const handleDeviceChange = (e) => {
+                setSelectedDeviceId(e.target.value);
+                if (cameraActive) {
+                    stopCamera();
+                    setTimeout(startCamera, 200); // restart camera with new device
+                }
+            };
+
+            const captureScreenshot = () => {
+                if (!videoRef.current || !cameraActive) return;
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const video = videoRef.current;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+                const link = document.createElement('a');
+                link.download = `ppe-screenshot-${Date.now()}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg');
+                link.click();
+            };
+
+            const formatTime = (date) => {
+                return date.toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+            };
+
+            const formatViolationType = (type) => {
+                return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            };
+
+            const formatTimeAgo = (timestamp) => {
+                const nowIST = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+                const timestampIST = new Date(timestamp.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+                const diffInMinutes = Math.floor((nowIST - timestampIST) / (1000 * 60));
+                if (diffInMinutes < 1) return "Just now";
+                if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+                const diffInHours = Math.floor(diffInMinutes / 60);
+                if (diffInHours < 24) return `${diffInHours} hours ago`;
+                return `${Math.floor(diffInHours / 24)} days ago`;
+            };
+
+    // ...existing code...
+
+    // State for prediction result
+    const [predictionResult, setPredictionResult] = useState(null);
+    // ...existing code...
+    const [liveDetecting, setLiveDetecting] = useState(false);
+
+    // ...existing code...
+
+    // Function to capture a frame from the video and send to backend
+    const sendFrameForDetection = async () => {
+        if (!videoRef.current || !cameraActive) return;
+        const video = videoRef.current;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const formData = new FormData();
+            formData.append('image', blob, 'frame.jpg');
+            try {
+                const response = await fetch('/predict/', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                setPredictionResult(data);
+            } catch (err) {
+                setPredictionResult({ error: 'Live detection failed.' });
+            }
+        }, 'image/jpeg');
+    };
+
+    // Live detection effect
+    useEffect(() => {
+        let intervalId;
+        if (cameraActive && liveDetecting) {
+            intervalId = setInterval(() => {
+                sendFrameForDetection();
+            }, 3000); // every 3 seconds
+        }
+        return () => intervalId && clearInterval(intervalId);
+    }, [cameraActive, liveDetecting]);
+
+    return (
+        <div>
+            {/* Header */}
+            <header className="header">
+                <div className="header-content">
+                    <div className="logo">
+                        <img src="images/iocl.jpg" alt="IndianOil Logo" />
+                        <span style={{fontFamily: 'Montserrat, Arial, sans-serif', fontWeight: 700, fontSize: '2rem', letterSpacing: '1px', color: '#1a8c84'}}>PPE Detection</span>
+                    </div>
+                    <div className="status">
+                        <div className="status-dot"></div>
+                        <span>System Active</span>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <div className="container">
+                {/* Camera Feed Section */}
+                <div>
+                    <div className="card">
+                        <div className="card-header">
+                            Live Camera Feed
+                            <div style={{marginLeft: 'auto', fontSize: '0.875rem', color: '#6b7280'}}>
+                                Detection: {cameraActive ? 'Active' : 'Inactive'}
+                            </div>
+                        </div>
+                        <div className="camera-container">
+                            <video
+                                ref={videoRef}
+                                className="video"
+                                autoPlay
+                                muted
+                                playsInline
+                            />
+                            <canvas ref={canvasRef} className="canvas-overlay" />
+                            <div className="camera-overlay">
+                                <div className={`status-dot ${cameraActive ? '' : 'bg-gray-400'}`}></div>
+                                {cameraActive ? 'LIVE' : 'OFF'}
+                            </div>
+                            <div className="timestamp">
+                                {formatTime(currentTime)}
+                            </div>
+                            {!cameraActive && (
+                                <div className="camera-placeholder">
+                                    <h3>Camera Inactive</h3>
+                                    <p>Click "Start Camera" to begin monitoring</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="controls">
+                            <div style={{display: 'flex', gap: '0.75rem'}}>
+                                <button
+                                    className={`button ${cameraActive ? 'button-danger' : 'button-primary'}`}
+                                    onClick={cameraActive ? stopCamera : startCamera}
+                                >
+                                    {cameraActive ? 'Stop Camera' : 'Start Camera'}
+                                </button>
+                                <button
+                                    className="button button-secondary"
+                                    onClick={captureScreenshot}
+                                    disabled={!cameraActive}
+                                >
+                                    Capture
+                                </button>
+                            </div>
+                            <div style={{fontSize: '0.875rem', color: '#6b7280'}}>
+                                {detectedPersons} persons detected
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Image upload and prediction removed. Only live detection remains. */}
+
+                    {/* Statistics */}
+                    {/* ...existing code... */}
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon"></div>
+                            <div className="stat-content">
+                                <h3>Total Detections</h3>
+                                <p className="stat-primary">{statistics.totalDetections}</p>
+                            </div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon"></div>
+                            <div className="stat-content">
+                                <h3>Compliant</h3>
+                                <p className="stat-success">{statistics.compliantCount}</p>
+                            </div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon"></div>
+                            <div className="stat-content">
+                                <h3>Violations</h3>
+                                <p className="stat-danger">{statistics.violationCount}</p>
+                            </div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon"></div>
+                            <div className="stat-content">
+                                <h3>Compliance Rate</h3>
+                                <p className="stat-primary">{statistics.complianceRate}%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sidebar */}
+                {/* ...existing code... */}
+                <div className="sidebar">
+                    {/* Recent Alerts */}
+                    <div className="card">
+                        <div className="card-header">Recent Alerts</div>
+                        <div style={{padding: '1rem'}}>
+                            {violations.length === 0 ? (
+                                <div className="empty-state">
+                                    <p>No alerts yet</p>
+                                    <p style={{fontSize: '0.75rem', marginTop: '0.5rem'}}>
+                                        Alerts will appear when PPE violations are detected
+                                    </p>
+                                </div>
+                            ) : (
+                                violations.slice(0, 5).map((violation, index) => (
+                                    <div
+                                        key={index}
+                                        className={`alert-item ${violation.type.includes('vest') ? 'warning' : ''}`}
+                                    >
+                                        <h4 className="violation-type">
+                                            {formatViolationType(violation.type)}
+                                        </h4>
+                                        <p>Person {violation.person} - {formatTimeAgo(violation.timestamp)}</p>
+                                        <p>Confidence: {Math.round(violation.confidence * 100)}%</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Screenshots */}
+                    <div className="card">
+                        <div className="card-header">Screenshots</div>
+                        <div style={{padding: '1rem'}}>
+                            {violationScreenshots.length === 0 ? (
+                                <div className="empty-state">
+                                    <p>No screenshots yet</p>
+                                    <p style={{fontSize: '0.75rem', marginTop: '0.5rem'}}>
+                                        Screenshots are captured automatically when violations occur
+                                    </p>
+                                </div>
+                            ) : (
+                                violationScreenshots.map((shot, index) => (
+                                    <div key={index} className="screenshot-item">
+                                        <img src={shot.image} alt="Violation Screenshot" style={{width: '100%', display: 'block'}} />
+                                        <div className="screenshot-info">
+                                            <h4 className="violation-type">
+                                                {formatViolationType(shot.type)}
+                                            </h4>
+                                            <p>{formatTimeAgo(new Date(shot.timestamp))}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Alert Modal */}
+            {/* ...existing code... */}
+            {showAlert && latestViolation && (
+                <div className="modal" onClick={() => setShowAlert(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-icon"></div>
+                        <h2>PPE Violation Detected!</h2>
+                        <p style={{margin: '1rem 0', color: '#6b7280'}}>
+                            A worker has been detected without required PPE.
+                        </p>
+                        <div style={{background: '#fef2f2', padding: '1rem', borderRadius: '0.5rem', margin: '1rem 0'}}>
+                            <h3 className="violation-type" style={{color: '#ef4444', marginBottom: '0.5rem'}}>
+                                {formatViolationType(latestViolation.type)}
+                            </h3>
+                            <p style={{fontSize: '0.875rem', color: '#6b7280'}}>
+                                Person {latestViolation.person} - Confidence: {Math.round(latestViolation.confidence * 100)}%
+                            </p>
+                        </div>
+                        <button
+                            className="button button-danger"
+                            onClick={() => setShowAlert(false)}
+                            style={{width: '100%'}}
+                        >
+                            Acknowledge Alert
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+        }
+
+        // Render the app
+        ReactDOM.render(<PPEDetectionApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
